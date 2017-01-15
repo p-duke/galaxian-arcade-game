@@ -114,6 +114,9 @@ function Game() {
       Bullet.prototype.context = this.mainContext;
       Bullet.prototype.canvasWidth = this.mainCanvas.width;
       Bullet.prototype.canvasHeight = this.mainCanvas.height;
+      Enemy.prototype.context = this.mainContext;
+      Enemy.prototype.canvasWidth = this.mainCanvas.width;
+      Enemy.prototype.canvasHeight = this.mainCanvas.height;
       //Initialize the background object
       this.background = new Background();
       this.background.init(0,0); // Set draw point to 0,0
@@ -123,6 +126,24 @@ function Game() {
       var shipStartX = this.shipCanvas.width/2 - imageRepository.spaceship.width;
       var shipStartY = this.shipCanvas.height/4*3 + imageRepository.spaceship.height*2;
       this.ship.init(shipStartX, shipStartY, imageRepository.spaceship.width, imageRepository.spaceship.height);
+      // Initialize the enemy pool object
+      this.enemyPool = new Pool(30);
+      this.enemyPool.init("enemy");
+      var height = imageRepository.enemy.height;
+      var width = imageRepository.enemy.width;
+      var x = 100;
+      var y = -height;
+      var spacer = y * 1.5;
+      for (var i = 1; i <= 18; i++) {
+        this.enemyPool.get(x,y,2);
+        x += width + 25;
+        if (i % 6 == 0) {
+          x = 100;
+          y += spacer;
+        }
+      }
+      this.enemyBulletPool = new Pool(50);
+      this.enemyBulletPool.init("enemyBullet");
       return true;
     } else {
       return false;
@@ -144,6 +165,8 @@ function Game() {
     game.background.draw();
     game.ship.move();
     game.ship.bulletPool.animate();
+    game.enemyPool.animate();
+    game.enemyBulletPool.animate();
   }
 
   /*
