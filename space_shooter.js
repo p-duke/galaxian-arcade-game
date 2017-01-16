@@ -152,6 +152,8 @@ function Game() {
       }
       this.enemyBulletPool = new Pool(50);
       this.enemyBulletPool.init("enemyBullet");
+      // Start QuadTree
+      this.quadTree = new QuadTree({x:0,y:0,width:this.mainCanvas.width,height:this.mainCanvas.height});
       return true;
     } else {
       return false;
@@ -169,6 +171,14 @@ function Game() {
   The animation loop. Calls the requestAnimateionFrame shim to optimize the game loop and draws all game objects. This function must be a global function and cannot be within an object.
   */
   function animate() {
+    // Insert objects into quadtree
+    game.quadTree.clear();
+    game.quadTree.insert(game.ship);
+    game.quadTree.insert(game.ship.bulletPool.getPool());
+    game.quadTree.insert(game.enemyPool.getPool());
+    game.quadTree.insert(game.enemyBulletPool.getPool());
+    detectCollision();
+    // Animate game objects
     requestAnimFrame( animate );
     game.background.draw();
     game.ship.move();
@@ -681,3 +691,25 @@ function QuadTree(boundBox, lvl) {
     }, level+1);
   };
 }
+
+function detectCollision() {
+  var objects = [];
+  game.quadTree.getAllObjects(objects);
+
+  for (var x = 0, len = objects.length; x < len; x++) {
+    game.quadTree.findObjects(obj = [], objects[x]);
+
+    for (y = 0, length = obj.length; y < length; y++) {
+
+      //Detect Collision Algorithm
+      if (objects[x].collidableWith === obj[y].type &&
+        (objects[x].x < obj[y].x + obj[y].width &&
+          objects[x].x + objects[x].width > obj[y].x &&
+          objects[x].y < obj[y].y + obj[y].height &&
+          objects[x].y + objects[x].height > obj[y].y)) {
+        objects[x].isColliding = true;
+      obj[y].isColliding = true;
+      }
+    }
+  }
+};
