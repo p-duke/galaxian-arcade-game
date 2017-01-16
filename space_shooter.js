@@ -58,9 +58,17 @@ function Drawable() {
   this.speed = 0;
   this.cavasWidth = 0;
   this.canvasHeight = 0;
+  this.collidableWith = "";
+  this.isColliding = false;
+  this.type = "";
 
   // Define abstract function to be implemented in child objects
   this.draw = function() {
+  };
+  this.move = function() {
+  };
+  this.isCollidableWith = function(object) {
+    return (this.colladableWith === object.type);
   };
 }
 
@@ -209,6 +217,8 @@ function Pool(maxSize) {
         // Initialize the bullet object
         var bullet = new Bullet("bullet");
         bullet.init(0,0,imageRepository.bullet.width, imageRepository.bullet.height);
+        bullet.collidableWith = "enemy";
+        bullet.type = "bullet";
         pool[i] = bullet;
       }
     }
@@ -223,10 +233,22 @@ function Pool(maxSize) {
       for (var i = 0; i< size; i++) {
         var bullet = new Bullet("enemyBullet");
         bullet.init(0,0,imageRepository.enemyBullet.width, imageRepository.enemyBullet.height);
+        bullet.collidableWith = "ship";
+        bullet.type = "enemyBullet";
         pool[i] = bullet;
       }
     }
   };
+
+  this.getPool = function() {
+    var obj = [];
+    for (var i = 0; i < size; i++) {
+      if (pool[i].alive) {
+        obj.push(pool[i]);
+      }
+    }
+    return obj;
+  }
 
   // Grabs the last item in the list and initializes it and pushes it to the front of the array.
   this.get = function(x, y, speed) {
@@ -283,9 +305,12 @@ function Bullet(object) {
     the bullet is read to be cleard by the pool, otherise draws the bullet.
    */
    this.draw = function() {
-    this.context.clearRect(this.x, this.y, this.width, this.height);
+    this.context.clearRect(this.x-1, this.y-1, this.width+2, this.height+2);
     this.y -= this.speed;
-    if (self === "bullet" && this.y <= 0 -this.height) {
+    if (this.isColliding) {
+      return true;
+    }
+    else if (self === "bullet" && this.y <= 0 -this.height) {
       return true;
     }
     else if (self === "enemyBullet" && this.y >= this.canvasHeight) {
@@ -308,6 +333,7 @@ function Bullet(object) {
     this.y = 0;
     this.speed = 0;
     this.alive = false;
+    this.isColliding = false;
   };
 }
 Bullet.prototype = new Drawable();
@@ -317,8 +343,10 @@ function Ship() {
   this.speed = 3;
   this.bulletPool = new Pool(30);
   this.bulletPool.init("bullet");
-  var fireRate = 15;
+  var fireRate = 9;
   var counter = 0;
+  this.collidableWith = "enemyBullet";
+  this.type = "ship";
   this.draw = function() {
     this.context.drawImage(imageRepository.spaceship, this.x, this.y);
   };
@@ -350,9 +378,11 @@ function Ship() {
           this.y = this.canvasHeight - this.height;
       }
       // Finish by redrawing the ship
-      this.draw();
+      if (!this.isColliding) {
+        this.draw();
+      }
     }
-    if (KEY_STATUS.space && counter >= fireRate) {
+    if (KEY_STATUS.space && counter >= fireRate && !this.isColliding) {
       this.fire();
       counter = 0;
     }
@@ -416,6 +446,8 @@ function Enemy() {
   var percentFire = .01;
   var chance = 0;
   this.alive = false;
+  this.collidableWith = "bullet";
+  this.type = "enemy";
 
   // Sets the Enemy values
   this.spawn = function(x,y,speed) {
@@ -447,11 +479,17 @@ function Enemy() {
       this.y -= 5;
       this.speedX = -this.speed;
     }
-    this.context.drawImage(imageRepository.enemy, this.x, this.y);
-    // Enemy has a chance to shoot every movement
-    chance = Math.floor(Math.random()*101);
-    if (chance/100 < percentFire) {
-      this.fire();
+    if (!this.isColliding) {
+      this.context.drawImage(imageRepository.enemy, this.x, this.y);
+      // Enemy has a chance to shoot every movement
+      chance = Math.floor(Math.random()*101);
+      if (chance/100 < percentFire) {
+        this.fire();
+      }
+      return false;
+    }
+    else {
+      return true;
     }
   };
   // Fires a bullet
@@ -467,6 +505,7 @@ function Enemy() {
     this.speedX = 0;
     this.speedY = 0;
     this.alive = false;
+    this.isColliding = false;
   };
 }
 Enemy.prototype = new Drawable();
@@ -482,7 +521,7 @@ The quadrant indexes are numbered as below:
      |
 */
 
-function QuadTree(boundBox, 1v1) {
+function QuadTree(boundBox, lvl) {
   var maxObjects = 10;
   this.bounds = boundBox || {
     x: 0,
@@ -492,9 +531,11 @@ function QuadTree(boundBox, 1v1) {
   };
   var objects = [];
   this.nodes = [];
-  var level = 1v1 || 0;
+  var level = lvl || 0;
   var maxLevels = 5;
-  // Clears the quadTree and all nodes of objects
+  /*
+   * Clears the quadTree and all nodes of objects
+   */
   this.clear = function() {
     objects = [];
     for (var i = 0; i < this.nodes.length; i++) {
@@ -502,7 +543,9 @@ function QuadTree(boundBox, 1v1) {
     }
     this.nodes = [];
   };
-  // Get all object in the quadTree
+  /*
+   * Get all objects in the quadTree
+   */
   this.getAllObjects = function(returnedObjects) {
     for (var i = 0; i < this.nodes.length; i++) {
       this.nodes[i].getAllObjects(returnedObjects);
@@ -512,8 +555,9 @@ function QuadTree(boundBox, 1v1) {
     }
     return returnedObjects;
   };
-
-  // Return all objects that the object could collide with
+  /*
+   * Return all objects that the object could collide with
+   */
   this.findObjects = function(returnedObjects, obj) {
     if (typeof obj === "undefined") {
       console.log("UNDEFINED OBJECT");
@@ -529,11 +573,12 @@ function QuadTree(boundBox, 1v1) {
     return returnedObjects;
   };
   /*
-  Insert the object into the quadTree. If the tree exceeds the capacity,
-  it will split and add all objects to thier corresponding nodes.
+   * Insert the object into the quadTree. If the tree
+   * excedes the capacity, it will split and add all
+   * objects to their corresponding nodes.
    */
-   this.insert = function(obj) {
-    if (typeof obj == "undefined") {
+  this.insert = function(obj) {
+    if (typeof obj === "undefined") {
       return;
     }
     if (obj instanceof Array) {
@@ -546,13 +591,13 @@ function QuadTree(boundBox, 1v1) {
       var index = this.getIndex(obj);
       // Only add the object to a subnode if it can fit completely
       // within one
-      if (index != -1 ) {
+      if (index != -1) {
         this.nodes[index].insert(obj);
         return;
       }
     }
     objects.push(obj);
-    // Prevent inifinite splitting
+    // Prevent infinite splitting
     if (objects.length > maxObjects && level < maxLevels) {
       if (this.nodes[0] == null) {
         this.split();
@@ -569,20 +614,22 @@ function QuadTree(boundBox, 1v1) {
       }
     }
   };
-
-  // Determine which node the object belongs to. -1 means
-  // object cannot completely fit within a node and is part of the current
-  // node
+  /*
+   * Determine which node the object belongs to. -1 means
+   * object cannot completely fit within a node and is part
+   * of the current node
+   */
   this.getIndex = function(obj) {
     var index = -1;
     var verticalMidpoint = this.bounds.x + this.bounds.width / 2;
     var horizontalMidpoint = this.bounds.y + this.bounds.height / 2;
-    // Ojbect can fit completely within the top quadrant
+    // Object can fit completely within the top quadrant
     var topQuadrant = (obj.y < horizontalMidpoint && obj.y + obj.height < horizontalMidpoint);
-    // Object can fir completely within the bottom quadrant
+    // Object can fit completely within the bottom quandrant
     var bottomQuadrant = (obj.y > horizontalMidpoint);
-    // Object can fit completely within left quadrants
-    if (obj.x < verticalMidpoint && obj.x + obj.width < verticalMidpoint) {
+    // Object can fit completely within the left quadrants
+    if (obj.x < verticalMidpoint &&
+        obj.x + obj.width < verticalMidpoint) {
       if (topQuadrant) {
         index = 1;
       }
@@ -590,7 +637,7 @@ function QuadTree(boundBox, 1v1) {
         index = 2;
       }
     }
-    // Object can fix completely within the right quadrants
+    // Object can fix completely within the right quandrants
     else if (obj.x > verticalMidpoint) {
       if (topQuadrant) {
         index = 0;
@@ -601,11 +648,13 @@ function QuadTree(boundBox, 1v1) {
     }
     return index;
   };
-  // Splits the node into 4 subnodes
+  /*
+   * Splits the node into 4 subnodes
+   */
   this.split = function() {
+    // Bitwise or [html5rocks]
     var subWidth = (this.bounds.width / 2) | 0;
     var subHeight = (this.bounds.height / 2) | 0;
-
     this.nodes[0] = new QuadTree({
       x: this.bounds.x + subWidth,
       y: this.bounds.y,
@@ -620,7 +669,7 @@ function QuadTree(boundBox, 1v1) {
     }, level+1);
     this.nodes[2] = new QuadTree({
       x: this.bounds.x,
-      y: this.bounds.y,
+      y: this.bounds.y + subHeight,
       width: subWidth,
       height: subHeight
     }, level+1);
