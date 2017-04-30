@@ -1,0 +1,19 @@
+{
+  "name": "space-shooter-arcade-game",
+  "version": "1.0.0",
+  "description": "HTML5 canvas game built with plain JS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-duke/space-shooter-arcade-game.git"
+  },
+  "author": "Peter Duke <peteraaronduke@gmail.com> (https://peter-duke.com)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/p-duke/space-shooter-arcade-game/issues"
+  },
+  "homepage": "https://github.com/p-duke/space-shooter-arcade-game#readme"
+}
