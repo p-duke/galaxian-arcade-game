@@ -47,11 +47,11 @@ var imageRepository = new function() {
   }
 
   // Set images src
-  this.background.src = "./imgs/bg.png";
-  this.spaceship.src = "./imgs/ship.png";
-  this.bullet.src = "./imgs/bullet.png";
-  this.enemy.src = "./imgs/enemy.png";
-  this.enemyBullet.src = "./imgs/bullet_enemy.png";
+  this.background.src = "../imgs/bg.png";
+  this.spaceship.src = "../imgs/ship.png";
+  this.bullet.src = "../imgs/bullet.png";
+  this.enemy.src = "../imgs/enemy.png";
+  this.enemyBullet.src = "../imgs/bullet_enemy.png";
 }
 
 
@@ -735,12 +735,12 @@ function Game() {
       this.explosion = new SoundPool(20);
       this.explosion.init("explosion");
 
-      this.backgroundAudio = new Audio("./sounds/kick_shock.wav");
+      this.backgroundAudio = new Audio("../sounds/kick_shock.wav");
       this.backgroundAudio.loop = true;
       this.backgroundAudio.volume = .25;
       this.backgroundAudio.load();
 
-      this.gameOverAudio = new Audio("./sounds/game_over.wav");
+      this.gameOverAudio = new Audio("../sounds/game_over.wav");
       this.gameOverAudio.loop = true;
       this.gameOverAudio.volume = .25;
       this.gameOverAudio.load();
@@ -837,7 +837,7 @@ function SoundPool(maxSize) {
     if (object == "laser") {
       for (var i = 0; i < size; i++) {
         // Initalize the object
-        laser = new Audio("./sounds/laser.wav");
+        laser = new Audio("../sounds/laser.wav");
         laser.volume = .12;
         laser.load();
         pool[i] = laser;
@@ -845,7 +845,7 @@ function SoundPool(maxSize) {
     }
     else if (object == "explosion") {
       for (var i = 0; i < size; i++) {
-        var explosion = new Audio("./sounds/explosion.wav");
+        var explosion = new Audio("../sounds/explosion.wav");
         explosion.volume = .1;
         explosion.load();
         pool[i] = explosion;
